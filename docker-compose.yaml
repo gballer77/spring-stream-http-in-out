@@ -1,0 +1,75 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbitmq_stream advertised_host localhost
+    ports:
+      - "5552:5552"
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ./docker-rabbit-enabled_plugins:/etc/rabbitmq/enabled_plugins
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 30s
+      timeout: 30s
+      retries: 10
+  localaws:
+    image: localstack/localstack:latest
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - DEFAULT_REGION=us-east-1
+      - DEBUG=1
+      - DATA_DIR=aws/tmp
+    volumes:
+      - ./aws:/etc/localstack/init/ready.d
+      - ./.localstack:/aws/tmp
+    healthcheck:
+      test: [ "CMD", "awslocal", "s3api", "list-buckets" ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+  s3-source:
+    image: springcloudstream/s3-source-rabbit:5.0.1
+    container_name: s3-source
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      localaws:
+        condition: service_healthy
+    environment:
+      - S3_BUCKET_NAME=bucket
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=123
+      - AWS_SECRET_ACCESS_KEY=xyz
+      - AWS_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://localaws:4566
+      - AWS_EC2_METADATA_DISABLED=true
+      - AWS_ENDPOINT_URL_S3=http://localaws:4566  # SDK v2 S3-specific endpoint
+      - CLOUD_AWS_INSTANCE_PROFILE=false
+      - CLOUD_AWS_METADATA_ENABLED=false
+      - CLOUD_AWS_INSTANCE_METADATA_DISABLED=true  # Explicitly disable instance metadata
+      - CLOUD_AWS_REGION_STATIC=us-east-1  # Explicitly set static region
+      - CLOUD_AWS_S3_REGION=us-east-1
+      - CLOUD_AWS_S3_ENDPOINT=http://localaws:4566
+      - CLOUD_AWS_INSTANCE_ID=local-dummy-instance  # Fake instance ID
+      - SPRING_CLOUD_AWS_S3_BUCKET=bucket
+      - SPRING_CLOUD_AWS_S3_PATH_STYLE_ACCESS_ENABLED=true
+      - SPRING_CLOUD_AWS_S3_FORCE_PATH_STYLE=true  # Spring-specific override
+      - SPRING_CLOUD_AWS_S3_ENDPOINT=http://localaws:4566
+      - SPRING_CLOUD_AWS_AUTOCONFIGURE=false  # Disable Spring Cloud AWS auto-config
+      - SPRING_CLOUD_AWS_S3_ENABLED=true      # Enable only S3 explicitly if needed
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - SPRING_CLOUD_STREAM_BINDINGS_OUTPUT_DESTINATION=s3-source-output
+      - SPRING_CLOUD_STREAM_BINDINGS_OUTPUT_BINDER=rabbit
+      - SPRING_CLOUD_STREAM_BINDERS_RABBIT_TYPE=rabbit
+      - SPRING_CLOUD_STREAM_BINDERS_RABBIT_ENVIRONMENT_SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_CLOUD_STREAM_BINDERS_RABBIT_ENVIRONMENT_SPRING_RABBITMQ_PORT=5672
+      - SPRING_CLOUD_STREAM_BINDERS_RABBIT_ENVIRONMENT_SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_CLOUD_STREAM_BINDERS_RABBIT_ENVIRONMENT_SPRING_RABBITMQ_PASSWORD=guest
