@@ -10,5 +10,4 @@
 3. Open the necessary applications
 
     - RabbitMQ console at [localhost:15672](http://localhost:15672)
-
-## Tasks
+=
