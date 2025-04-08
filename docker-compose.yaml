@@ -19,7 +19,7 @@ services:
       retries: 10
 
   http-in:
-    image: springcloudstream/http-source-rabbit:5.0.1
+    image: springcloudstream/http-source-rabbit:5.0.1-jdk21
     container_name: http-in
     ports:
       - "8081:8080"
@@ -36,7 +36,7 @@ services:
       - SPRING_CLOUD_STREAM_BINDERS_RABBIT_ENVIRONMENT_SPRING_RABBITMQ_USERNAME=guest
 
   splitter:
-    image: springcloudstream/splitter-processor-rabbit:5.0.1
+    image: springcloudstream/splitter-processor-rabbit:5.0.1-jdk21
     container_name: splitter
     depends_on:
       rabbitmq:
@@ -53,7 +53,7 @@ services:
       - SPRING_CLOUD_STREAM_BINDERS_RABBIT_ENVIRONMENT_SPRING_RABBITMQ_USERNAME=guest
 
   processor:
-    image: springcloudstream/script-processor-rabbit:5.0.1
+    image: springcloudstream/script-processor-rabbit:5.0.1-jdk21
     container_name: transformer
     depends_on:
       rabbitmq:
@@ -71,7 +71,7 @@ services:
       - SCRIPT_PROCESSOR_SCRIPT=JSON.stringify(Object.fromEntries(payload.split(',').map((val, i) => [['employee_id', 'name', 'department', 'salary'][i], val])))
 
   http-out:
-    image: springcloudstream/http-request-processor-rabbit:5.0.1
+    image: springcloudstream/http-request-processor-rabbit:5.0.1-jdk21
     container_name: http-out
     depends_on:
       rabbitmq:

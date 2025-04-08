@@ -1,0 +1,25 @@
+server:
+  port: 8095
+spring:
+  cloud:
+    stream:
+      binders:
+        rabbit:
+          environment:
+            spring:
+              rabbitmq:
+                host: localhost
+                port: 5672
+                username: guest
+      bindings:
+        process-in-0:
+          destination: employee-csv
+          content-type: text/plain
+        process-out-0:
+          destination: employee-json
+          content-type: application/json
+      rabbit:
+        bindings:
+          process-in-0:
+            consumer:
+              queueNameGroupOnly: true
